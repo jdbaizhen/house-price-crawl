@@ -7,7 +7,14 @@ var zoneSchema = new mongoose.Schema({
 	villageX : Number,
 	villageY : Number,
 	priceRate : {type : Object},
-	priceNow : Number
+	priceNow : Number,
+	avgPrice : Number,
+	villageImage : String,
+	property : String,
+	developer : String,
+	finishTime : String,
+	green : String,
+	houseHolds : String,
 })
 
 

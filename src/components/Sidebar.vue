@@ -1,37 +1,17 @@
 <template>
-  <div class="col-md-3">
-  	
-  	<div class="sideHead">
-  			<div class="sideTitle">
-  				<div class="progress">
-						  <div class="progress-bar" aria-valuenow=">30" @click="percentSearch(1)"  style="width: 20%;background: #DC143C;cursor: pointer;">
-						    <span>>30%</span>
-						  </div>
-						  <div class="progress-bar" aria-valuenow="20-30" @click="percentSearch(2)"  style="width: 20%;background: #FF1493;cursor: pointer;">
-						    <span>20%-30%</span>
-						  </div>
-						  <div class="progress-bar" aria-valuenow="10-20" @click="percentSearch(3)" style="width: 20%;background: #9400D3;cursor: pointer;">
-						    <span>10%-20%</span>
-						  </div>
-						   <div class="progress-bar" aria-valuenow="0-10" @click="percentSearch(4)" style="width: 20%;background: #1E90FF;cursor: pointer;">
-						    <span>0%-10%</span>
-						  </div>
-						   <div class="progress-bar" aria-valuenow="<0" @click="percentSearch(5)" style="width: 20%;background: #3CB371;cursor: pointer;">
-						    <span>0%></span>
-						  </div>
-					</div>
-  			</div>
-  			<div class="sideChose">加入讨论组</div>
-  	</div>
-  	
+  <div class="col-md-3">	
     <ul>
 	      <li v-for="(item,index) in priceList" :class="{'check':curIndex==index}" v-on:mouseover="curIndex=index" v-on:mouseout="curIndex=-1">
-				     <p style="font-weight: bold;">小区名称：{{item.villageName}}</p>
-				     <p>本月售价：{{item.priceNow}}/㎡ | 涨幅：{{item.priceRate}}%</p>
-				     <p>小区地址：{{item.district.substring(0,item.district.indexOf('-'))}}区{{item.address}}</p>
+						<div class="li-left">
+							<img :src="item.villageImage" alt="">
+						</div>
+						<div class="li-right">
+							<p style="font-weight: bold;">小区名称：{{item.villageName}}</p>
+				    	 <p>本月售价：{{item.priceNow}}/㎡</p>
+				    	 <p>小区地址：{{item.district.substring(0,item.district.indexOf('-'))}}区{{item.address}}</p>
+						</div> 
 	      </li> 
-    </ul>
-    
+    </ul>  
   </div>
 </template>
 
@@ -110,7 +90,7 @@ export default {
 	}
 	ul {
 		position: fixed;
-		top: 150px;
+		top: 52px;
 		bottom: 0px;
 	  list-style-type: none;
 		width: inherit;
@@ -120,18 +100,37 @@ export default {
 	}
 	
 	li {
+		display: flex;
+		flex-direction: row;
 	 	height: 90px;
 	 	padding:10px 10px 10px 20px;
 	 	border-bottom: 1px solid #F8E5BE; 
 	}
 	
+	.li-left{
+		flex: 1;
+	}
+	.li-left img{
+		width: 100%;
+		height: 100%;
+	}
+	.li-right{
+		margin-left: 15px;
+		display: flex;
+		flex: 3;
+		flex-direction: column;
+	}
+
 	.check{
 		background:#F7F7F7;
 	}
 	
-	li>p{
+	.li-right p{
 		height:20px;
 		line-height: 20px;
-		margin-bottom: 5px;
+		margin-bottom: 3px;
+		white-space: nowrap;
+  	overflow: hidden;
+  	text-overflow: ellipsis;
 	}
 </style>

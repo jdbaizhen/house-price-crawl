@@ -56,17 +56,14 @@ export default {
 			var top_left_control = new BMap.ScaleControl({anchor: BMAP_ANCHOR_TOP_LEFT});// 左上角，添加比例尺
 			var top_left_navigation = new BMap.NavigationControl();  //左上角，添加默认缩放平移控件
 			var _this = this;
-			
-			//添加控件和比例尺
-			function add_control(){
-				map.addControl(top_left_control);        
-				map.addControl(top_left_navigation);     
-			}
-			add_control();
-			
+	
+			map.addControl(top_left_control);        
+			map.addControl(top_left_navigation);     
+	
 			map.enableScrollWheelZoom(true);							//控制地图缩放
 			map.addControl(new BMap.MapTypeControl());   				//添加地图类型控件
 			map.centerAndZoom("上海", 12);//通过设置城市来访问地图  
+			
 			
 			//地图根据区域跳转
 		  	messageBus.$on('areaObj',(data)=>{
@@ -81,9 +78,9 @@ export default {
 			map.addEventListener('tilesloaded',function(){		
 					var zoom = map.getZoom();
 					if(zoom>11 && zoom<15){
-						map.clearOverlays();
-						
-						_this.$http.get('/areaPrice').then((req) => {
+						// map.clearOverlays();
+	
+						_this.$http.get('/areaPrice').then( req => {
 							for(let i=0;i<_this.areaPoint.length;i++){
 								let point = new BMap.Point(_this.areaPoint[i].x, _this.areaPoint[i].y);
 	
@@ -92,9 +89,8 @@ export default {
 									offset   : new BMap.Size(-25,-20)    //设置文本偏移量
 								}
 								
-								let label = new BMap.Label(_this.areaPoint[i].area+'</br>'+req.body[i].avgPrice+'/㎡', opts);  // 创建文本标注对象
+								let label = new BMap.Label(_this.areaPoint[i].area+'</br>'+req.body[i].areaVillage+'小区', opts);  // 创建文本标注对象
 								label.setStyle({
-									  boxSizing:"border-box",
 						              color: "#fff",
 						              background: "rgba(0,128,0,.6)",
 						              fontSize: "12px",
@@ -108,7 +104,7 @@ export default {
 						              lineHeight: "20px",
 						              overflow: "hidden",
 						              textAlign: "center",
-						              fontFamily: "微软雅黑"	,
+						              fontFamily: "微软雅黑",
 						              cursor: 'pointer'
 								});
 								
@@ -123,7 +119,7 @@ export default {
 							}						
 						})
 					}else if(zoom>14){
-						map.clearOverlays();
+						// map.clearOverlays();
 						var bs = map.getBounds();   							//获取可视区域
 						var bssw = bs.getSouthWest();   						//可视区域左下角
 						var bsne = bs.getNorthEast();  							//可视区域右上角
@@ -208,13 +204,13 @@ export default {
 								     }
 								    
 								    let point = new BMap.Point(value.villageX,value.villageY);
-								    let myCompOverlay = new ComplexCustomOverlay(point,value.villageName+'|'+value.priceRate+'%');
+								    let myCompOverlay = new ComplexCustomOverlay(point,value.villageName);
 									map.addOverlay(myCompOverlay);
 							})
 						})
 					}
 					else{
-						map.clearOverlays();
+						// map.clearOverlays();
 					}
 			})	
 		}

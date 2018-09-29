@@ -3,7 +3,7 @@
 	  <div class="container-fluid">
 	
 		    <div class="navbar-header">
-		      <span class="navbar-brand" href="#">魔都近期房价涨幅</span>
+		      <span class="navbar-brand" href="#">魔都本月房价统计</span>
 		    </div>
 	   
 	      <form class="navbar-form navbar-left" onsubmit="return false">
@@ -13,10 +13,14 @@
 	         <button type="submit" class="btn btn-default" @click="submit">查询</button>
 	      </form>
 	     
-			  <select id="areaChose" @change="changeMap()">
+			<select id="areaChose" @change="changeMap()">
 			  		<option>选择区域</option>
-			 			<option v-for="(item,index) in areaPoint" v-bind:value="item.area">{{item.area}}</option>
-			 	</select>
+			 		<option v-for="(item,index) in areaPoint" v-bind:value="item.area">{{item.area}}</option>
+			</select>
+
+			<select id="priceVal" @change="changePrice()" v-model="priceVal" placeholder="选择价格区间">
+			 		<option v-for="(item,index) in pricePoint" :value="item.min">{{item.min}}--{{item.max}}</option>
+			</select>
 	 		
 	    <div class="admin">
 		    	<a href="#" @click="startRegister" v-if="!showModel">&nbsp;注册&nbsp;&nbsp;</a>
@@ -37,27 +41,38 @@ export default {
   data () {
     return {
     	showModel : false,
-      zoneName : '',
-      adminAccount : '',
-      areaPoint : [
-									 {area:"宝山区"},
-									 {area:"闵行区"},
-									 {area:"浦东区"},
-									 {area:"松江区"},
-									 {area:"杨浦区"},
-									 {area:"普陀区"},
-									 {area:"嘉定区"},
-									 {area:"徐汇区"},
-									 {area:"闸北区"},
-									 {area:"奉贤区"},
-									 {area:"虹口区"},
-									 {area:"金山区"},
-									 {area:"青浦区"},
-									 {area:"长宁区"},
-									 {area:"静安区"},
-									 {area:"崇明区"},
-									 {area:"黄浦区"}
-									]
+      	zoneName : '',
+      	adminAccount : '',
+      	areaPoint : [
+					{area:"宝山区"},
+					{area:"闵行区"},
+					{area:"浦东区"},
+					{area:"松江区"},
+					{area:"杨浦区"},
+					{area:"普陀区"},
+					{area:"嘉定区"},
+					{area:"徐汇区"},
+					{area:"闸北区"},
+					{area:"奉贤区"},
+					{area:"虹口区"},
+					{area:"金山区"},
+					{area:"青浦区"},
+					{area:"长宁区"},
+					{area:"静安区"},
+					{area:"崇明区"},
+					{area:"黄浦区"}
+				],
+		pricePoint: [
+			{min: '175000', max: '200000'},
+			{min: '150000', max: '175000'},
+			{min: '125000', max: '150000'},
+			{min: '100000', max: '125000'},
+			{min: '75000', max: '100000'},
+			{min: '50000', max: '75000'},
+			{min: '25000', max: '50000'},
+			{min: '0', max: '25000'},
+		],
+		priceVal: null
     }
   },
   methods:{
@@ -93,14 +108,23 @@ export default {
     //下拉框逻辑
     changeMap : function(){
     	var obj = document.getElementById('areaChose');
-      var areaObj = obj.options[obj.selectedIndex].value;
-      messageBus.$emit('areaObj',areaObj);		//将选择的区域告诉Housemap.vue
-      this.$http.post('/areaZonesInfo',{			//给后台发送请求获取该区域所有信息
-      	areaObj : areaObj
+		var areaObj = obj.options[obj.selectedIndex].value;
+		messageBus.$emit('areaObj',areaObj);		//将选择的区域告诉Housemap.vue
+		this.$http.post('/areaZonesInfo',{			//给后台发送请求获取该区域所有信息
+      		areaObj : areaObj
 	      }).then((result)=>{
 	      	messageBus.$emit('areaZones',result);	//将获取的信息发送至Sidebar.vue
 	      })
-    }
+	},
+	//价格区间
+	changePrice: function() {
+		let priceVal = this.priceVal
+		this.$http.post('/priceZonesInfo',{
+			priceArea: priceVal
+		}).then((result) => {
+			messageBus.$emit('areaZones',result)
+		})
+	}
     
   }
 }
@@ -130,7 +154,7 @@ export default {
 	.btn{
 		width: 15%;
 	}
-	select{
+	#areaChose{
 		position: absolute;
 		top: 10px;
 		left: 65%;
@@ -140,6 +164,16 @@ export default {
 		border-radius: 4px;
 		border: 1px solid rgb(204,204,204);
 	}	
+	#priceVal{
+		position: absolute;
+		top: 10px;
+		left: 75%;
+		padding: 6px;
+		width: 10%;
+		height: 32px;
+		border-radius: 4px;
+		border: 1px solid rgb(204,204,204);
+	}
 	.navbar-brand{
 		font-size: 24px;	
 		color: #fff;

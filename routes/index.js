@@ -29,6 +29,7 @@ router.get('/delZoneInfo',async function(req,res){
 	await Area.remove({});
 	res.json("delete success");
 })
+
 //爬取所需数据
 router.get('/getVillageInfo',async function(req,res){
 	//爬取前先对数据库进行清空
@@ -41,18 +42,26 @@ router.get('/getVillageInfo',async function(req,res){
 		const now = new Date();
 		console.log(now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()+"  开始爬取 "+areaName[i]+"区");
 		const areaPageUrl = Url+areaUrlArr[i]+"_ocost-desc";
+		//获取每个区售楼小区个数
 		const areaPageInfo = await request(areaPageUrl);
-		//const pages = villagePages(areaPageInfo);	
-		var areaPriceArr = [];
+		const result = await areaVillage(areaPageInfo);	
+		const area = new Area({
+			district : areaName[i],
+			areaVillage : result
+		})
+		await area.save();
+		
+		//var areaPriceArr = [];
 		//遍历每个区域的每一页
 		for(let j=1;j<=3;j++){
 			const now = new Date();
 			console.log(now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()+"  开始爬取第"+j+"页...");
 			const zonePageUrl = Url+areaUrlArr[i]+"_ocost-desc_pa"+j;
-			const response = await request(zonePageUrl);
-			const zones = everyVillageUrl(response);
-			//遍历每张页面内的所有小区
-			for(let k=0;k<zones.length;k++){	
+			try{
+				const response = await request(zonePageUrl);
+				const zones = await everyVillageUrl(response);
+				//遍历每张页面内的所有小区
+				for(let k=0;k<zones.length;k++){	
 					//包头，防止被屏蔽
 					let options = {
 						url : zones[k],
@@ -66,56 +75,67 @@ router.get('/getVillageInfo',async function(req,res){
 					const zoneInfo = zonesInfo(zoneRep);
 					const zone = new Zone({
 						district : zoneInfo.district,
+						villageImage: zoneInfo.villageImage,
 						villageName : zoneInfo.villageName,
 						villageKey : zoneInfo.villageKey,
+						priceNow: zoneInfo.priceNow,
 						address : zoneInfo.address,
 						villageX : zoneInfo.villageX,
-						villageY : zoneInfo.villageY
+						villageY : zoneInfo.villageY,
+						property: zoneInfo.property,
+						developer: zoneInfo.developer,
+						finishTime: zoneInfo.finishTime,
+						green: zoneInfo.green,
+						houseHolds: zoneInfo.houseHolds
 					});
-					const zoneSave = await zone.save();
-					const priceMonthUrl = 'http://esf.fangdd.com/data/cell/price_history_trend?type=4&id='+zoneInfo.villageKey;
-					const priceRep = await request({url:priceMonthUrl,timeout:2000});						
-					const priceArr = getMonthPrice(priceRep);
-					//遍历每个小区每个月的信息
-					for(let i=0;i<priceArr.length;i++){
-						const zoneprice = new ZonePrice({
-							zone : zoneSave._id,
-							time : priceArr[i].time,
-							listedPrice : priceArr[i].listedPrice,
-							currentPrice : priceArr[i].currentPrice,
-							district : zoneInfo.district
-						})
-						const zonepriceSave = zoneprice.save();
-					}
+					await zone.save();
+					// const priceMonthUrl = 'http://esf.fangdd.com/data/cell/price_history_trend?type=4&id='+zoneInfo.villageKey;
+					// const priceRep = await request({url:priceMonthUrl,timeout:2000});						
+					// const priceArr = getMonthPrice(priceRep);
+					// //遍历每个小区每个月的信息
+					// for(let i=0;i<priceArr.length;i++){
+					// 	const zoneprice = new ZonePrice({
+					// 		zone : zoneSave._id,
+					// 		time : priceArr[i].time,
+					// 		listedPrice : priceArr[i].listedPrice,
+					// 		currentPrice : priceArr[i].currentPrice,
+					// 		district : zoneInfo.district
+					// 	})
+					// 	const zonepriceSave = zoneprice.save();
+					// }
 					
-					let febPrice = priceArr[0].listedPrice;
-					let julyPrice = priceArr[priceArr.length-1].listedPrice;
-					areaPriceArr.push(julyPrice);
+					// let febPrice = priceArr[0].listedPrice;
+					// let julyPrice = priceArr[priceArr.length-1].listedPrice;
+					// areaPriceArr.push(julyPrice);
 					
-					if(febPrice!=0&&julyPrice!=0){
-						const priceRate = ((julyPrice-febPrice)/febPrice*100).toFixed(3);
-						await Zone.update({_id:zoneSave._id},{priceRate:priceRate,priceNow:julyPrice});
-					}else{
-						await Zone.update({_id:zoneSave._id},{priceRate:"暂无数据",priceNow:julyPrice});
-					}	
+					// if(febPrice!=0&&julyPrice!=0){
+					// 	const priceRate = ((julyPrice-febPrice)/febPrice*100).toFixed(3);
+					// 	await Zone.update({_id:zoneSave._id},{priceRate:priceRate,priceNow:julyPrice});
+					// }else{
+					// 	await Zone.update({_id:zoneSave._id},{priceRate:"暂无数据",priceNow:julyPrice});
+					// }	
 					}catch(e){
 						console.log(e.messgae);
 					}
 			}
+			}catch(e){
+				console.log(e.messgae);
+			}
+			
 			const nowTime =new Date();
 			console.log(nowTime.getHours()+":"+nowTime.getMinutes()+":"+nowTime.getSeconds()+"  第"+j+"页爬取结束");
 		}
 		
-		let sum=0;
-		for(let t=0;t<areaPriceArr.length;t++){
-			sum = sum + Number(areaPriceArr[t]);
-		}
-		let avgPrice = Math.round(sum/areaPriceArr.length);
-		const area = new Area({
-			district : areaName[i],
-			avgPrice : avgPrice
-		})
-		const areaSave = area.save();
+		// let sum=0;
+		// for(let t=0;t<areaPriceArr.length;t++){
+		// 	sum = sum + Number(areaPriceArr[t]);
+		// }
+		// let avgPrice = sum!==0?Math.round(sum/areaPriceArr.length):0;
+		// const area = new Area({
+		// 	district : areaName[i],
+		// 	avgPrice : avgPrice
+		// })
+		// const areaSave = area.save();
 		
 		const nowDate =new Date();
 		console.log(nowDate.getHours()+":"+nowDate.getMinutes()+":"+nowDate.getSeconds()+"  "+areaName[i]+"区爬取结束"+'\n');
@@ -124,17 +144,24 @@ router.get('/getVillageInfo',async function(req,res){
 
 //获取区域均价
 router.get('/areaPrice', async function(req,res){
-	let data = await Area.find('avgPrice');
-	res.json(data);
+	let data = await Area.find('areaVillage');
+	res.json(data);	
 })
 
+router.post('/priceZonesInfo',async function(req, res) {
+	let areaPriceMin = Number(req.body.priceArea);
+	let areaPriceMax = Number(req.body.priceArea)+25000;
+	console.log(typeof areaPriceMin,typeof areaPriceMax)
+	let result = await Zone.where('priceNow').gte(areaPriceMin).lte(areaPriceMax).sort({'priceNow':-1})
+	res.json(result)
+})
 
 //获取前台传来的坐标，并在后台查找出对应的数据
 router.post('/searchZone',async function(req,res){
 	let bssw_lng = req.body.bssw_lng,
-			bssw_lat = req.body.bssw_lat,
-			bsne_lng = req.body.bsne_lng,
-			bsne_lat = req.body.bsne_lat;
+		bssw_lat = req.body.bssw_lat,
+		bsne_lng = req.body.bsne_lng,
+		bsne_lat = req.body.bsne_lat;
 	let result = await Zone
 						.where('villageX').gte(bssw_lng).lte(bsne_lng)
 						.where('villageY').gte(bssw_lat).lte(bsne_lat);
@@ -167,61 +194,56 @@ router.post('/areaZonesInfo',async function(req,res){
 })
 
 //根据百分比检索数据
-router.post('/percentSearch',async function(req,res){
-	const percent = req.body.num;
-	if(percent==1){
-		await Zone
-				  .where('priceRate').gte(30)
-				  .sort({'priceRate':-1})
-				  .exec(function(data){
-				  	console.log(data);
-				  	res.json(data);
-				  })
-	}else if(percent==2){
-		await Zone
-				  .where('priceRate').gte(20).lte(30)
-				  .exec(function(data){
-				  	console.log(data);
-				  	res.json(data);
-				  })
-	}else if(percent==3){
-		await Zone
-				  .where('priceRate').gte(10).lte(20)
-				  .exec(function(data){
-				  	console.log(data);
-				  	res.json(data);
-				  })
-	}else if(percent==4){
-		await Zone
-				  .where('priceRate').gte(0).lte(10)
-				  .exec(function(data){
-				  	console.log(data);
-				  	res.json(data);
-				  })
-	}else{
-		await Zone
-				  .where('priceRate').gte(0)
+// router.post('/percentSearch',async function(req,res){
+// 	const percent = req.body.num;
+// 	if(percent==1){
+// 		await Zone
+// 				  .where('priceRate').gte(30)
+// 				  .sort({'priceRate':-1})
+// 				  .exec(function(data){
+// 				  	console.log(data);
+// 				  	res.json(data);
+// 				  })
+// 	}else if(percent==2){
+// 		await Zone
+// 				  .where('priceRate').gte(20).lte(30)
+// 				  .exec(function(data){
+// 				  	console.log(data);
+// 				  	res.json(data);
+// 				  })
+// 	}else if(percent==3){
+// 		await Zone
+// 				  .where('priceRate').gte(10).lte(20)
+// 				  .exec(function(data){
+// 				  	console.log(data);
+// 				  	res.json(data);
+// 				  })
+// 	}else if(percent==4){
+// 		await Zone
+// 				  .where('priceRate').gte(0).lte(10)
+// 				  .exec(function(data){
+// 				  	console.log(data);
+// 				  	res.json(data);
+// 				  })
+// 	}else{
+// 		await Zone
+// 				  .where('priceRate').gte(0)
 				 
-				  .exec(function(data){
-				  	console.log(data);
-				  	res.json(data);
-				  })
-	}
-})
+// 				  .exec(function(data){
+// 				  	console.log(data);
+// 				  	res.json(data);
+// 				  })
+// 	}
+// })
 
 
 //获取每个区小区的分页数
-function villagePages(html){
+function areaVillage(html){
 	if(html){
 		let $ = cheerio.load(html);
-		const pageElem = $('.contain>.clearfix>.cell--result>.list-title>h4>span').text();
-		let pages;
-		if((pageElem/15)<100){
-			pages = Math.ceil(pageElem/20);
-		}else{
-			pages = 100;
-		}
-		return pages;
+		const areaVillage = $('.number').text();
+		console.log(areaVillage);
+		return areaVillage;
 	}
 }
 
@@ -244,31 +266,33 @@ function everyVillageUrl(html){
 function zonesInfo(html){
 	if(html){
 		let $ = cheerio.load(html);
-		let basicElem = $('.cell--detail--container>.main__cell__info>.right__cell__info>.cell__info--title');
+		let villageImage = $('.ele__img').attr('src');
+		let priceNow = $('.average__price--orange').text();
+		let basicElem = $('.cell--detail--container>.main__cell__info>.right__cell__info>.cell__info--title');	
 		let villageName = basicElem.find('.cell__name').text();
 		if(villageName.indexOf('(')!=-1){
 			villageName = villageName.substring(0,villageName.indexOf('('));
 		}
 		let district = $(basicElem.find('a')[0]).text()+"--"+$(basicElem.find('a')[1]).text();
-		let address = $(basicElem.find('span')[2]).text();
-//		let subwayElem = $('div>.cell--detail--container>.left-right-content>.left-side>.nearby__metro>.content>.station_item');
-//		console.log(subwayElem.length);
-//		let subway = subwayElem.find('.station_name').text()+"："+$(subwayElem.find('.subway_line>.line_no>a>span')[0]).text()+"号线"+$(subwayElem.find('.subway_line>.line_no>a>span')[1]).text();
-		let scriptText = $($('script')[11]).html().trim();
+		let address = $(basicElem.find('.cell__address')).text();
+		let scriptText = $($('script')[14]).html().trim();
 		let villageKey = scriptText.substring(scriptText.indexOf("g_cell_id")+13,scriptText.indexOf("g_cell_name")-9);
 		let position = scriptText.substring(scriptText.indexOf('g_cell_geo')+14,scriptText.indexOf('g_cell_price')-9);
 		let posiArr = position.split(',');
 		let villageY = posiArr[0],
-				villageX = posiArr[1];
+			villageX = posiArr[1];
 		
 		let zoneObj = {
 			district : district,
+			villageImage: villageImage,
 			villageName : villageName,
 			villageKey : villageKey,
+			priceNow: priceNow,
 			address : address,
 			villageX : villageX,
-			villageY : villageY
+			villageY : villageY,
 		}
+		console.log(zoneObj);
 		return zoneObj;
 	}
 }
